@@ -3,23 +3,70 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (!counterElement) return;
 
-  const counter = Number(counterElement.innerHTML);
-  // Calculate the step value by dividing the counter number by 20
-  let step = Math.ceil(counter / 30);
-  let count = 0
+  const counter = Number(counterElement.textContent);
+  const step = Math.ceil(counter / 30);
+  const intervalTime = 30;
+  let count = 0;
+  let isCounterStarted = false;
+  let isScrollDebounced = false;
 
-   const startCounter  = ()=> {
-     const interval = setInterval(function() {
-       if (count <= counter && count <= step * 20) { // Add condition to stop counting after reaching the desired step
-         counterElement.innerHTML = count;
-         count += step; // Increment the count by the step value
-       } else {
-         clearInterval(interval); // Clear the interval after reaching the desired step
-       }
-     }, 60);
+  counterElement.textContent = count;
+
+  const resetCounter = () => {
+    count = 0;
+    counterElement.textContent = count;
   }
 
-  startCounter();
+  const startCounter = () => {
+    if (!isCounterStarted) {
+      isCounterStarted = true;
+      const interval = setInterval(() => {
+        if (count <= counter && count <= step * 30) {
+          counterElement.textContent = count;
+          count += step;
+        } else {
+          clearInterval(interval);
+          isCounterStarted = false;
+        }
+      }, intervalTime);
+    }
+  }
 
+  // Define a debounce function
+  const debounce = (func, delay) => {
+    let timeoutId;
+    return (...args) => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      timeoutId = setTimeout(() => {
+        func(...args);
+      }, delay);
+    };
+  };
+
+  const handleScroll = () => {
+    const counterRect = counterElement.getBoundingClientRect();
+    const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+    if (counterRect.top <= windowHeight && counterRect.bottom >= 0) {
+      startCounter();
+    } else {
+      resetCounter();
+    }
+  }
+
+  // Create a debounced version of the handleScroll function
+  const handleScrollDebounced = debounce(handleScroll, 100);
+
+  // Update the scroll event listener to use the debounced function
+  window.addEventListener("scroll", () => {
+    if (!isScrollDebounced) {
+      isScrollDebounced = true;
+      handleScrollDebounced();
+      setTimeout(() => {
+        isScrollDebounced = false;
+      }, 100); // You can adjust the delay time (in milliseconds) as needed
+    }
+  });
 
 }, false);
